@@ -29,10 +29,9 @@
 #include "G4Track.hh"
 #include "G4TouchableHistory.hh"
 
-#include <array>
-#include <map>
-#include <string>
 #include <vector>
+#include <string>
+#include <map>
 
 class HGCPassive : public SimProducer,
 		   public Observer<const BeginOfRun *>, 
@@ -42,18 +41,18 @@ class HGCPassive : public SimProducer,
   
 public:
   HGCPassive(const edm::ParameterSet &p);
-  ~HGCPassive() override;
+  virtual ~HGCPassive();
 
-  void produce(edm::Event&, const edm::EventSetup&) override;
+  void produce(edm::Event&, const edm::EventSetup&);
 
 private:
-  HGCPassive(const HGCPassive&) = delete; // stop default
-  const HGCPassive& operator=(const HGCPassive&) = delete;
+  HGCPassive(const HGCPassive&); // stop default
+  const HGCPassive& operator=(const HGCPassive&);
 
   // observer classes
-  void update(const BeginOfRun * run) override;
-  void update(const BeginOfEvent * evt) override;
-  void update(const G4Step * step) override;
+  void update(const BeginOfRun * run);
+  void update(const BeginOfEvent * evt);
+  void update(const G4Step * step);
   
   //void endOfEvent(edm::PassiveHitContainer &HGCEEAbsE);
   void endOfEvent(edm::PassiveHitContainer& hgcPH, unsigned int k);
@@ -62,7 +61,7 @@ private:
   G4VPhysicalVolume * getTopPV();
   volumeIterator      findLV(G4LogicalVolume * plv);
   void storeInfo(const volumeIterator itr, G4LogicalVolume* plv, 
-		 unsigned int copy, double time, double energy, bool flag);
+		 unsigned int copy, double time, double energy);
 
 private:
 
@@ -75,7 +74,7 @@ private:
   // some private members for ananlysis 
   unsigned int              count_;                  
   bool                      init_;
-  std::map<std::pair<G4LogicalVolume*,unsigned int>,std::array<double,3>> store_;
+  std::map<std::pair<G4LogicalVolume*,unsigned int>,std::pair<double,double>> store_;
 };
 
 
