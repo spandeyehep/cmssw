@@ -77,7 +77,7 @@ private:
   bool                                      ifEE_, ifFH_, ifBH_, ifBeam_;
   bool                                      doTree_, doTreeCell_;
   bool                                      doSimHits_, doDigis_, doRecHits_;
-  bool                                      doPassive_;
+  bool                                      doPassive_, doPassiveEE_, doPassiveHE_, doPassiveBH_;
   std::string                               detectorEE_, detectorFH_;
   std::string                               detectorBH_, detectorBeam_;
   double                                    zFrontEE_, zFrontFH_, zFrontBH_;
@@ -91,7 +91,7 @@ private:
   edm::EDGetToken                           tok_hitrEE_, tok_hitrFH_, tok_hitrBH_;
   edm::EDGetTokenT<edm::HepMCProduct>       tok_hepMC_;
   edm::EDGetTokenT<edm::PassiveHitContainer> tok_hgcPHEE_, tok_hgcPHFH_;
-  edm::EDGetTokenT<edm::PassiveHitContainer> tok_hgcPHBH_, tok_hgcPHCMSE_;
+  edm::EDGetTokenT<edm::PassiveHitContainer> tok_hgcPHBH_, tok_hgcPHCMSE_, tok_hgcPHBeam_;
 
   TTree                                    *tree_;
   TH1D                                     *hSimHitE_[4], *hSimHitT_[4];
@@ -115,9 +115,9 @@ private:
   std::vector<float>                        simHitCellEnEE_, simHitCellEnFH_;
   std::vector<float>                        simHitCellEnBH_, simHitCellEnBeam_;
 
-  std::vector<float>                        hgcPassiveEEEnergy_, hgcPassiveFHEnergy_, hgcPassiveBHEnergy_, hgcPassiveCMSEEnergy_;
-  std::vector<std::string>                  hgcPassiveEEName_, hgcPassiveFHName_, hgcPassiveBHName_, hgcPassiveCMSEName_;
-  std::vector<int>                          hgcPassiveEEID_, hgcPassiveFHID_, hgcPassiveBHID_, hgcPassiveCMSEID_;
+  std::vector<float>                        hgcPassiveEEEnergy_, hgcPassiveFHEnergy_, hgcPassiveBHEnergy_, hgcPassiveCMSEEnergy_, hgcPassiveBeamEnergy_;
+  std::vector<std::string>                  hgcPassiveEEName_, hgcPassiveFHName_, hgcPassiveBHName_, hgcPassiveCMSEName_, hgcPassiveBeamName_;
+  std::vector<int>                          hgcPassiveEEID_, hgcPassiveFHID_, hgcPassiveBHID_, hgcPassiveCMSEID_, hgcPassiveBeamID_;
 
   double                                    xBeam_, yBeam_, zBeam_, pBeam_;
 };
@@ -146,6 +146,10 @@ HGCalTBAnalyzer::HGCalTBAnalyzer(const edm::ParameterSet& iConfig) {
   doTree_      = iConfig.getUntrackedParameter<bool>("DoTree",false);
   doTreeCell_  = iConfig.getUntrackedParameter<bool>("DoTreeCell",false);
   doPassive_   = iConfig.getUntrackedParameter<bool>("DoPassive",false);
+  doPassiveEE_   = iConfig.getUntrackedParameter<bool>("DoPassiveEE",false);
+  doPassiveHE_   = iConfig.getUntrackedParameter<bool>("DoPassiveHE",false);
+  doPassiveBH_   = iConfig.getUntrackedParameter<bool>("DoPassiveBH",false);
+
 
 #ifdef EDM_ML_DEBUG
   std::cout << "HGCalTBAnalyzer:: SimHits = " << doSimHits_ << " Digis = "
@@ -169,7 +173,7 @@ HGCalTBAnalyzer::HGCalTBAnalyzer(const edm::ParameterSet& iConfig) {
   tok_simTk_   = consumes<edm::SimTrackContainer>(edm::InputTag("g4SimHits"));
   tok_simVtx_  = consumes<edm::SimVertexContainer>(edm::InputTag("g4SimHits"));
   edm::InputTag tmp2 = iConfig.getParameter<edm::InputTag>("DigiSrcEE");
-  tok_digiEE_  = consumes<HGCalDigiCollection>(tmp2);
+  tok_digiEE_  = consumes<HGCEEDigiCollection>(tmp2);
   edm::InputTag tmp3 = iConfig.getParameter<edm::InputTag>("RecHitSrcEE");
   tok_hitrEE_  = consumes<HGCRecHitCollection>(tmp3);
 #ifdef EDM_ML_DEBUG
@@ -181,7 +185,7 @@ HGCalTBAnalyzer::HGCalTBAnalyzer(const edm::ParameterSet& iConfig) {
   tmp1         = iConfig.getParameter<std::string>("CaloHitSrcFH");
   tok_hitsFH_  = consumes<edm::PCaloHitContainer>(edm::InputTag("g4SimHits",tmp1));
   tmp2         = iConfig.getParameter<edm::InputTag>("DigiSrcFH");
-  tok_digiFH_  = consumes<HGCalDigiCollection>(tmp2);
+  tok_digiFH_  = consumes<HGCHEDigiCollection>(tmp2);
   tmp3         = iConfig.getParameter<edm::InputTag>("RecHitSrcFH");
   tok_hitrFH_  = consumes<HGCRecHitCollection>(tmp3);
 #ifdef EDM_ML_DEBUG
@@ -193,7 +197,7 @@ HGCalTBAnalyzer::HGCalTBAnalyzer(const edm::ParameterSet& iConfig) {
   tmp1         = iConfig.getParameter<std::string>("CaloHitSrcBH");
   tok_hitsBH_  = consumes<edm::PCaloHitContainer>(edm::InputTag("g4SimHits",tmp1));
   tmp2         = iConfig.getParameter<edm::InputTag>("DigiSrcBH");
-  tok_digiBH_  = consumes<HGCalDigiCollection>(tmp2);
+  tok_digiBH_  = consumes<HGCBHDigiCollection>(tmp2);
   tmp3         = iConfig.getParameter<edm::InputTag>("RecHitSrcBH");
   tok_hitrBH_  = consumes<HGCRecHitCollection>(tmp3);
 
@@ -209,6 +213,9 @@ HGCalTBAnalyzer::HGCalTBAnalyzer(const edm::ParameterSet& iConfig) {
 
   tmp = iConfig.getParameter<edm::InputTag>("HGCPassiveCMSE");
   tok_hgcPHCMSE_   = consumes<edm::PassiveHitContainer>(tmp);
+
+  tmp = iConfig.getParameter<edm::InputTag>("HGCPassiveBeam");
+  tok_hgcPHBeam_   = consumes<edm::PassiveHitContainer>(tmp);
 
 #ifdef EDM_ML_DEBUG
   if (ifBH_) {
@@ -235,19 +242,19 @@ void HGCalTBAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descripti
   desc.add<bool>("UseEE",true);
   desc.add<double>("ZFrontEE",0.0);
   desc.add<std::string>("CaloHitSrcEE","HGCHitsEE");
-  desc.add<edm::InputTag>("DigiSrcEE",edm::InputTag("hgcalDigis","EE"));
+  desc.add<edm::InputTag>("DigiSrcEE",edm::InputTag("mix","HGCDigisEE"));
   desc.add<edm::InputTag>("RecHitSrcEE",edm::InputTag("HGCalRecHit","HGCEERecHits"));
   desc.add<std::string>("DetectorFH","HGCalHESiliconSensitive");
   desc.add<bool>("UseFH",false);
   desc.add<double>("ZFrontFH",0.0);
   desc.add<std::string>("CaloHitSrcFH","HGCHitsHEfront");
-  desc.add<edm::InputTag>("DigiSrcFH",edm::InputTag("hgcalDigis","HEfront"));
+  desc.add<edm::InputTag>("DigiSrcFH",edm::InputTag("mix","HGCDigisHEfront"));
   desc.add<edm::InputTag>("RecHitSrcFH",edm::InputTag("HGCalRecHit","HGCHEFRecHits"));
   desc.add<std::string>("DetectorBH","AHCal");
   desc.add<bool>("UseBH",false);
   desc.add<double>("ZFrontBH",0.0);
   desc.add<std::string>("CaloHitSrcBH","HcalHits");
-  desc.add<edm::InputTag>("DigiSrcBH",edm::InputTag("hgcalDigis","HEback"));
+  desc.add<edm::InputTag>("DigiSrcBH",edm::InputTag("mix","HGCDigisHEback"));
   desc.add<edm::InputTag>("RecHitSrcBH",edm::InputTag("HGCalRecHit","HGCHEBRecHits"));
   desc.add<std::string>("DetectorBeam","HcalTB06BeamDetector");
   desc.add<bool>("UseBeam",false);
@@ -259,6 +266,7 @@ void HGCalTBAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descripti
   desc.add<edm::InputTag>("HGCPassiveFH",edm::InputTag("g4SimHits","HGCalHEPassiveHits"));
   desc.add<edm::InputTag>("HGCPassiveBH",edm::InputTag("g4SimHits","HGCalAHPassiveHits"));
   desc.add<edm::InputTag>("HGCPassiveCMSE",edm::InputTag("g4SimHits","CMSEPassiveHits"));
+  desc.add<edm::InputTag>("HGCPassiveBeam",edm::InputTag("g4SimHits","HGCalBeamPassiveHits"));
 
   desc.add<bool>("DoSimHits",true);
   desc.add<bool>("DoDigis",true);
@@ -267,6 +275,9 @@ void HGCalTBAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descripti
   desc.addUntracked<bool>("DoTree",true);
   desc.addUntracked<bool>("DoTreeCell",true);
   desc.addUntracked<bool>("DoPassive",false);
+  desc.addUntracked<bool>("DoPassiveEE",false);
+  desc.addUntracked<bool>("DoPassiveHE",false);
+  desc.addUntracked<bool>("DoPassiveBH",false);
 
   descriptions.add("HGCalTBAnalyzer",desc);
 }
@@ -376,18 +387,33 @@ void HGCalTBAnalyzer::beginJob() {
   }
 
   if (doPassive_ && doTree_) {
-    tree_->Branch("hgcPassiveEEEnergy",   &hgcPassiveEEEnergy_);
-    tree_->Branch("hgcPassiveEEName",     &hgcPassiveEEName_);
-    tree_->Branch("hgcPassiveEEID",       &hgcPassiveEEID_);
-    tree_->Branch("hgcPassiveFHEnergy",   &hgcPassiveFHEnergy_);
-    tree_->Branch("hgcPassiveFHName",     &hgcPassiveFHName_);
-    tree_->Branch("hgcPassiveFHID",       &hgcPassiveFHID_);
+    
+    if (doPassiveEE_){
+      tree_->Branch("hgcPassiveEEEnergy",   &hgcPassiveEEEnergy_);
+      tree_->Branch("hgcPassiveEEName",     &hgcPassiveEEName_);
+      tree_->Branch("hgcPassiveEEID",       &hgcPassiveEEID_);
+      
+    }
+    
+    if (doPassiveHE_){
+      tree_->Branch("hgcPassiveFHEnergy",   &hgcPassiveFHEnergy_);
+      tree_->Branch("hgcPassiveFHName",     &hgcPassiveFHName_);
+      tree_->Branch("hgcPassiveFHID",       &hgcPassiveFHID_);
+    }
+
+    if (doPassiveBH_){
     tree_->Branch("hgcPassiveBHEnergy",   &hgcPassiveBHEnergy_);
     tree_->Branch("hgcPassiveBHName",     &hgcPassiveBHName_);
     tree_->Branch("hgcPassiveBHID",       &hgcPassiveBHID_);
+    }
     tree_->Branch("hgcPassiveCMSEEnergy", &hgcPassiveCMSEEnergy_);
     tree_->Branch("hgcPassiveCMSEName",   &hgcPassiveCMSEName_);
     tree_->Branch("hgcPassiveCMSEID",     &hgcPassiveCMSEID_);
+
+    tree_->Branch("hgcPassiveBeamEnergy", &hgcPassiveBeamEnergy_);
+    tree_->Branch("hgcPassiveBeamName",   &hgcPassiveBeamName_);
+    tree_->Branch("hgcPassiveBeamID",     &hgcPassiveBeamID_);
+
   }
 }
 
@@ -605,40 +631,69 @@ void HGCalTBAnalyzer::analyze(const edm::Event& iEvent,
 
   ////Store the info about the Passive hits
   if (doPassive_) {
-    hgcPassiveEEEnergy_.clear();     hgcPassiveFHEnergy_.clear();
-    hgcPassiveBHEnergy_.clear();     hgcPassiveCMSEEnergy_.clear();
-    hgcPassiveEEName_.clear();       hgcPassiveFHName_.clear();
-    hgcPassiveBHName_.clear();       hgcPassiveCMSEName_.clear();
-    hgcPassiveEEID_.clear();         hgcPassiveFHID_.clear();
-    hgcPassiveBHID_.clear();         hgcPassiveCMSEID_.clear();
     
-    ///EE
-    edm::Handle<edm::PassiveHitContainer>  hgcPHEE;
-    iEvent.getByToken(tok_hgcPHEE_,hgcPHEE);
-    analyzePassiveHits(hgcPHEE, 1);
+    if (doPassiveEE_){ 
+      hgcPassiveEEEnergy_.clear();
+      hgcPassiveEEName_.clear();
+      hgcPassiveEEID_.clear();
+      ///EE
+      edm::Handle<edm::PassiveHitContainer>  hgcPHEE;
+      iEvent.getByToken(tok_hgcPHEE_,hgcPHEE);
+      analyzePassiveHits(hgcPHEE, 1);
+      
+    }
 
-    ///FH
-    edm::Handle<edm::PassiveHitContainer>  hgcPHFH;
-    iEvent.getByToken(tok_hgcPHFH_,hgcPHFH);
-    analyzePassiveHits(hgcPHFH, 2);
+    if (doPassiveHE_){ 
+      hgcPassiveFHEnergy_.clear();
+      hgcPassiveFHName_.clear();
+      hgcPassiveFHID_.clear();
+      ///FH
+      edm::Handle<edm::PassiveHitContainer>  hgcPHFH;
+      iEvent.getByToken(tok_hgcPHFH_,hgcPHFH);
+      analyzePassiveHits(hgcPHFH, 2);
+      
+    }
 
-    ///BH
-    edm::Handle<edm::PassiveHitContainer>  hgcPHBH;
-    iEvent.getByToken(tok_hgcPHBH_,hgcPHBH);
-    analyzePassiveHits(hgcPHBH, 3);
+    if (doPassiveBH_){
+      hgcPassiveBHEnergy_.clear(); 
+      hgcPassiveBHID_.clear();  
+      hgcPassiveBHName_.clear(); 
+      
+      ///BH
+      edm::Handle<edm::PassiveHitContainer>  hgcPHBH;
+      iEvent.getByToken(tok_hgcPHBH_,hgcPHBH);
+      analyzePassiveHits(hgcPHBH, 3);
+      
+    }
 
+    hgcPassiveCMSEName_.clear();
+    hgcPassiveCMSEEnergy_.clear();
+    hgcPassiveCMSEID_.clear();
+    
     ///CMSE
     edm::Handle<edm::PassiveHitContainer>  hgcPHCMSE;
     iEvent.getByToken(tok_hgcPHCMSE_,hgcPHCMSE);
     analyzePassiveHits(hgcPHCMSE, 4);
-  }
+
+
+
+    hgcPassiveBeamName_.clear();
+    hgcPassiveBeamEnergy_.clear();
+    hgcPassiveBeamID_.clear();
+    
+    ///Beam
+    edm::Handle<edm::PassiveHitContainer>  hgcPHBeam;
+    iEvent.getByToken(tok_hgcPHBeam_,hgcPHBeam);
+    analyzePassiveHits(hgcPHBeam, 5);
+
+  }//if (doPassive_)
 
   if ((doSimHits_ || doPassive_) && (doTree_)) tree_->Fill();
 
   //Now the Digis
   if (doDigis_) {
     if (ifEE_) {
-      edm::Handle<HGCalDigiCollection> theDigiContainers;
+      edm::Handle<HGCEEDigiCollection> theDigiContainers;
       iEvent.getByToken(tok_digiEE_, theDigiContainers);
       if (theDigiContainers.isValid()) {
 #ifdef EDM_ML_DEBUG
@@ -654,7 +709,7 @@ void HGCalTBAnalyzer::analyze(const edm::Event& iEvent,
       }
     }
     if (ifFH_) {
-      edm::Handle<HGCalDigiCollection> theDigiContainers;
+      edm::Handle<HGCHEDigiCollection> theDigiContainers;
       iEvent.getByToken(tok_digiFH_, theDigiContainers);
       if (theDigiContainers.isValid()) {
 #ifdef EDM_ML_DEBUG
@@ -1008,7 +1063,13 @@ void HGCalTBAnalyzer::analyzePassiveHits (edm::Handle<edm::PassiveHitContainer>c
       hgcPassiveCMSEEnergy_.push_back(energy);
       hgcPassiveCMSEName_.push_back(name);
       hgcPassiveCMSEID_.push_back(id);
+    } else if (subdet==5) {
+      hgcPassiveBeamEnergy_.push_back(energy);
+      hgcPassiveBeamName_.push_back(name);
+      hgcPassiveBeamID_.push_back(id);
     }
+
+
   }
 }
   

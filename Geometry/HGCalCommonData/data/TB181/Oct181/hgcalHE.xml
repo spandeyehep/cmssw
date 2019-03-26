@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<DDDefinition xmlns="http://www.cern.ch/cms/DDL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cern.ch/cms/DDL ../../../../../DetectorDescription/Schema/DDLSchema.xsd">
+<DDDefinition xmlns="http://www.cern.ch/cms/DDL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cern.ch/cms/DDL ../../../../DetectorDescription/Schema/DDLSchema.xsd">
 
 <ConstantsSection label="hgcalHE.xml" eval="true">
   <Constant name="rMinFine"   value="0.0*fm"/>
@@ -18,9 +18,8 @@
     <Vector name="WaferName" type="string" nEntries="2">
       hgcalwafer:HGCalHEWaferFine, hgcalwafer:HGCalHEWaferCoarse</Vector>
     <Vector name="CoverName" type="string" nEntries="7">
-      hgcal:HGCalHEPCB,        hgcal:HGCalHEKapton,      hgcal:HGCalHEAbsorber, 
-      hgcal:HGCalHECuAbsorber, hgcal:HGCalHEPCBAbsorber, hgcal:HGCalHECuKapton,
-      hgcal:HGCalHECuPCB</Vector>
+      hgcal:HGCalHEPCB, hgcal:HGCalHEKapton, hgcal:HGCalHEAbsorber, hgcal:HGCalHECuAbsorber,
+      hgcal:HGCalHEPCBAbsorber, hgcal:HGCalHECuKapton, hgcal:HGCalHECuPCB</Vector>
     <Vector name="MaterialNames" type="string" nEntries="29">
       materials:Air, materials:Air, materials:Air,
       materials:Air, materials:Air, materials:StainlessSteel, 
