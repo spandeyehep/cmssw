@@ -61,7 +61,7 @@ process.RAWSIMoutput = cms.OutputModule("PoolOutputModule",
 
 # Additional output definition
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string('./outputFiles/TBGenSim_muon_10k.root')
+                                   fileName = cms.string('file:TBGenSim_muon_10k.root')
                                    )
 
 # Other statements
