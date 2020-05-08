@@ -110,6 +110,9 @@ public:
   double                          slopeMin_;
   layer_map                       copiesInLayers_;
 
+  ///SJ
+  std::vector<double>                layerThick_;
+
   COND_SERIALIZABLE;
 };
 

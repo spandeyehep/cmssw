@@ -41,6 +41,8 @@ public:
   void loadWaferHexagon(HGCalParameters& php);
   void loadCellParsHexagon(const DDCompactView* cpv, HGCalParameters& php);
 
+  //double getWaferThickness(int ilayer);
+
 private:
 
   struct layerParameters {

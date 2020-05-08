@@ -3,6 +3,7 @@
 <use   name="FWCore/ParameterSet"/>
 <use   name="FWCore/ServiceRegistry"/>
 <use   name="SimG4Core/Notification"/>
+<use   name="SimG4Core/Physics"/>
 <use   name="SimG4CMS/Calo"/>
 <use   name="geant4core"/>
 <use   name="boost"/>

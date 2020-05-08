@@ -72,6 +72,9 @@ public:
   bool                isHalfCell(int waferType, int cell) const;
   double              waferZ(int layer, bool reco) const;
 
+  ///SJ
+  double              getLayerThickness(int layer) const { return hgpar_->layerThick_[layer-1]; }; 
+
   HGCalParameters::hgtrap getModule(unsigned int k, bool hexType, bool reco) const;
   std::vector<HGCalParameters::hgtrap> getModules() const; 
 

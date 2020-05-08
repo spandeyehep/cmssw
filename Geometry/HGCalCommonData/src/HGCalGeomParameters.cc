@@ -363,6 +363,33 @@ void HGCalGeomParameters::loadGeometryHexagon(const DDFilteredView& _fv,
       }
     }
   }
+
+
+  ////SJ
+  double minActiveThick = 100; ///bad that I am doing it hardcoded for now. It will be changed
+  
+  std::cout<<"layerGroup_.size() "<<php.layerGroup_.size()<<std::endl;
+  
+  for (unsigned int i=0; i<php.layerGroup_.size(); i=i+3) {
+    
+    double totThickness = 0;
+    for (unsigned int k=0; k<3; ++k) {
+      
+      if (php.layerGroup_[i+k]!=-1 ) 
+	{
+	  totThickness += minActiveThick;
+	}
+      
+    }//for (unsigned int k=0; k<3; ++k) 
+      
+    
+    php.layerThick_.push_back(totThickness);
+    
+  }//for (unsigned int i=0; i<php.layerGroup_.size(); ++i)
+  ///SJ
+
+
+
   HGCalParameters::hgtrap mytr = php.getModule(0, false);
   mytr.bl   *= k_ScaleFromDDD;
   mytr.tl   *= k_ScaleFromDDD;
@@ -538,6 +565,11 @@ void HGCalGeomParameters::loadWaferHexagon(HGCalParameters& php) {
   php.waferTypeT_.clear();
   php.waferPosX_.clear();
   php.waferPosY_.clear();
+
+  ///SJ
+  php.layerThick_.clear();
+
+
   double dx   = 0.5*waferW;
   double dy   = 3.0*dx*tan(30.0*CLHEP::deg);
   double rr   = 2.0*dx*tan(30.0*CLHEP::deg);
@@ -637,6 +669,9 @@ void HGCalGeomParameters::loadWaferHexagon(HGCalParameters& php) {
     if (k2 > 0) std::cout << std::endl;
   }
 #endif
+
+
+
 }
 
 void HGCalGeomParameters::loadCellParsHexagon(const DDCompactView* cpv,
@@ -726,3 +761,8 @@ HGCalGeomParameters::cellPosition(const std::vector<HGCalGeomParameters::cellPar
   }
   return std::pair<double,double>(dx,dy);
 }
+
+
+
+
+
