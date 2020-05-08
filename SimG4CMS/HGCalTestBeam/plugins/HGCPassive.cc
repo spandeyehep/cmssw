@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "HGCPassive.h"
-#include "SimG4CMS/HGCalTestBeam/interface/TreatSecondary_SP.h"
+//#include "SimG4CMS/HGCalTestBeam/interface/TreatSecondary_SP.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include "G4TransportationManager.hh"
