@@ -5,6 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "HGCPassive.h"
+#include "SimG4Core/Physics/interface/G4ProcessTypeEnumerator.h"
 //#include "SimG4CMS/HGCalTestBeam/interface/TreatSecondary_SP.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
