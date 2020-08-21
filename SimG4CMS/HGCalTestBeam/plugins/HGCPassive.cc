@@ -11,6 +11,8 @@
 #include "CLHEP/Units/GlobalSystemOfUnits.h"
 #include "G4TransportationManager.hh"
 
+#include "SimG4Core/Physics/interface/G4ProcessTypeEnumerator.h"
+
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -23,6 +25,27 @@ HGCPassive::HGCPassive(const edm::ParameterSet& p) : topPV_(nullptr), topLV_(nul
   edm::ParameterSet m_Passive = p.getParameter<edm::ParameterSet>("HGCPassive");
   LVNames_ = m_Passive.getParameter<std::vector<std::string> >("LVNames");
   motherName_ = m_Passive.getParameter<std::string>("MotherName");
+
+  //spandey
+  std::string saveFile = m_Passive.getUntrackedParameter<std::string>("SaveInFile", "None");
+
+  count_ = 0;
+  event_ = 0;
+  foundHadInt = false;
+  
+  if (saveFile != "None") {
+    saveToTree = true;
+    tree = bookTree (saveFile);
+    edm::LogVerbatim("HGCSim") << "Instantiate CheckSecondary with first"
+			       << " hadronic interaction information"
+			       << " to be saved in file " << saveFile << std::endl;
+  } else {
+    saveToTree = false;
+    edm::LogVerbatim("HGCSim") << "Instantiate CheckSecondary with first"
+			       << " hadronic interaction information"
+			       << " not saved" << std::endl;
+  }
+
 
 #ifdef EDM_ML_DEBUG
   edm::LogVerbatim("HGCSim") << "Name of the mother volume " << motherName_;
@@ -38,6 +61,45 @@ HGCPassive::HGCPassive(const edm::ParameterSet& p) : topPV_(nullptr), topLV_(nul
 }
 
 HGCPassive::~HGCPassive() {}
+
+
+TTree* HGCPassive::bookTree(std::string fileName) {
+
+  file = new TFile (fileName.c_str(), "RECREATE");
+  file->cd();
+
+  TTree * t1 = new TTree("T1", "First Hadronic interaction info");
+  t1->Branch("x",  &x_);
+  t1->Branch("y",  &y_);
+  t1->Branch("z",  &z_);
+  t1->Branch("event",  &event_);
+  t1->Branch("foundHadInt",  &foundHadInt);
+  t1->Branch("process", &process);
+  t1->Branch("nsec", &nsec);
+  t1->Branch("sec_pdgID", &sec_pdgID);
+  t1->Branch("sec_charge", &sec_charge);
+  t1->Branch("sec_kin", &sec_kin);
+  t1->Branch("sec_x", &sec_x);
+  t1->Branch("sec_y", &sec_y);
+  t1->Branch("sec_z", &sec_z);
+
+  return t1;
+}
+
+void HGCPassive::endTree() {
+
+  edm::LogVerbatim("HGCSim") << "Save the Secondary Tree " 
+			     << tree->GetName() << " (" << tree
+			     << ") in file " << file->GetName() << " ("
+			     << file << ")" << std::endl;
+
+
+  file->cd();
+  tree->Write();
+  file->Close();
+  delete file;
+}
+
 
 void HGCPassive::produce(edm::Event& e, const edm::EventSetup&) {
   for (unsigned int k = 0; k < LVNames_.size(); ++k) {
@@ -68,6 +130,7 @@ void HGCPassive::update(const BeginOfRun* run) {
     }
 #endif
   }
+
 }
 
 //=================================================================== per EVENT
@@ -77,12 +140,89 @@ void HGCPassive::update(const BeginOfEvent* evt) {
 
   ++count_;
   store_.clear();
+  nsec = 0;
+  process = 0;
+  sec_pdgID.clear();
+  sec_charge.clear();
+  sec_kin.clear();
+  sec_x.clear();
+  sec_y.clear();
+  sec_z.clear();
+  x_ = -999999.0;
+  y_ = -999999.0;
+  z_ = -999999.0;
+  ++event_;
+  foundHadInt = false;
+
+
 }
 
 // //=================================================================== each
 // STEP
 void HGCPassive::update(const G4Step* aStep) {
   if (aStep != nullptr) {
+
+    ///from spandey
+    const G4TrackVector* tkV  = aStep->GetSecondary();
+    G4Track* thTk = aStep->GetTrack();
+    const G4StepPoint* postStepPoint = aStep->GetPostStepPoint();
+    if (tkV != nullptr && postStepPoint != nullptr) {
+      int nsc = (*tkV).size();
+      const G4VProcess*  proc = postStepPoint->GetProcessDefinedStep();
+      G4ProcessTypeEnumerator* typeEnumerator = new G4ProcessTypeEnumerator();
+      if (proc != nullptr) {
+	// G4ProcessType type = proc->GetProcessType();
+	int procid = typeEnumerator->processIdLong(proc);
+	std::string name = proc->GetProcessName();
+	if(thTk->GetParentID() <= 0 && procid >= 121 && procid <= 151) {
+
+	  foundHadInt = true;
+	  process = procid;
+
+	  x_ = postStepPoint->GetPosition().getX()/10.0; // Convert to cm
+	  y_ = postStepPoint->GetPosition().getY()/10.0; // Convert to cm
+	  z_ = (postStepPoint->GetPosition().getZ() - 25000.0)/10.0; // Bring to HGCAL front then Convert to cm
+	  edm::LogVerbatim("HGCSim") <<"*** First hadronic interaction ****"  <<std::endl
+				     <<" Particle =  "<<thTk->GetDefinition()->GetParticleName()
+				     <<" Process ID = "<<procid
+				     <<" Process name = "<<typeEnumerator->processG4Name(procid)
+				     <<" # of secondaries = "<<nsc
+				     <<" at (x,y,z) = ("<<x_<<" ,"<<y_<<" ,"<<z_<<")"<<std::endl;
+
+	  for(int i = 0; i < nsc; i++) {
+	    G4Track *tk = (*tkV)[i];
+	    if(tk->GetCreatorProcess()->GetProcessName() == "hIoni") continue;
+	    nsec++;
+	    sec_pdgID.push_back(tk->GetDefinition()->GetPDGEncoding());
+	    sec_charge.push_back(tk->GetDefinition()->GetPDGCharge());
+	    sec_x.push_back(tk->GetPosition().getX()/10.0);  // Convert to cm
+	    sec_y.push_back(tk->GetPosition().getY()/10.0);  // Convert to cm
+	    sec_z.push_back((tk->GetPosition().getZ() - 25000.0)/10.0); // Bring to HGCAL front then Convert to cm
+	    // CE-E proto front is at z = 25000 mm in the simulation and we want it be at z = 0 mm.
+	    sec_kin.push_back(tk->GetKineticEnergy()/GeV);
+#ifdef EDM_ML_DEBUG  
+	    edm::LogVerbatim("HGCSim") << " ID " << tk->GetTrackID() 
+				       << " ParentID  "<< tk->GetParentID()
+				       << " Status "<< tk->GetTrackStatus() 
+				       << " Particle "<< tk->GetDefinition()->GetParticleName()
+				       << " PDGID "<< tk->GetDefinition()->GetPDGEncoding()
+				       << " PDGCharge "<< tk->GetDefinition()->GetPDGCharge()
+				       << " Position(mm) " << tk->GetPosition() 
+				       << " KE " << tk->GetKineticEnergy()/GeV<<" GeV "<<std::endl;
+#endif
+	        
+	  }
+
+
+	}
+      }
+    }
+
+
+
+
+
+    //From sunanda
     G4VSensitiveDetector* curSD = aStep->GetPreStepPoint()->GetSensitiveDetector();
     const G4VTouchable* touchable = aStep->GetPreStepPoint()->GetTouchable();
 
@@ -107,6 +247,29 @@ void HGCPassive::update(const G4Step* aStep) {
                                    << aStep->GetTotalEnergyDeposit() << " Map " << (it != mapLV_.end());
 #endif
         energy += (aStep->GetPreStepPoint()->GetKineticEnergy() / CLHEP::GeV);
+
+	//spandey
+	// leakage information (asign different copy as identifier)
+	double zpos = (double)aStep->GetPreStepPoint()->GetPosition().getZ();
+	if(zpos < 25000.0) { // before EE
+	    copy = 0;
+	}
+	else if(zpos >= 25000.0 && zpos < 25630.0) { /// transverse leakage in EE
+	  copy = 10;
+	}
+	else if(zpos >= 25630.0 && zpos < 26610.0) { /// transverse leakage in FH
+	  copy = 20;
+	}
+	else if(zpos >= 26610.0 && zpos < 28115) { /// transverse leakage in AH
+	  copy = 30;
+	}
+	else { /// longitudinal leakage
+	  copy = 40;
+	}
+
+
+
+
       } else {
         time = (aStep->GetPostStepPoint()->GetGlobalTime());
         copy = (unsigned int)(touchable->GetReplicaNumber(0) + 1000 * touchable->GetReplicaNumber(1));
@@ -168,6 +331,20 @@ void HGCPassive::endOfEvent(edm::PassiveHitContainer& hgcPH, unsigned int k) {
     }
   }
 }
+
+
+// ======================================= End of event by spandey
+void HGCPassive::update(const EndOfEvent * evt) {
+  if (saveToTree) tree->Fill();
+
+}
+
+// ======================================= End of Run by spandey
+void HGCPassive::update(const EndOfRun * run) {
+    if (saveToTree)     endTree();
+
+}
+
 
 G4VPhysicalVolume* HGCPassive::getTopPV() {
   return G4TransportationManager::GetTransportationManager()->GetNavigatorForTracking()->GetWorldVolume();
